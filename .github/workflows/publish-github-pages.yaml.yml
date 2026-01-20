@@ -1,0 +1,30 @@
+on:
+  push:
+    # Hvilken branch som skal trigge workflowen
+    branches: ["main"]
+
+# Jobs definerer hva som skal skje når man pusher til main branchen
+jobs:
+  build:
+    # Kjører jobben på den nyeste versjonen av Ubuntu
+    runs-on: ubuntu-latest
+
+    # steps er liste av actions / handlinger som skal utføres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.x", cache: "npm" }
+
+      - run: npm ci # samme som npm install , men mer optimalisert for server
+      - run: npm run build # bygger prosjektet (lager produksjonsfiler i /dist mappen)
+      - run: npm test # kjører tester
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist # laster opp innholdet i /dist mappen som skal publiseres
+      - uses: actions/deploy-pages@v4
+
+    permissions:
+      id-token: write
+      pages: write
+      contents: read
