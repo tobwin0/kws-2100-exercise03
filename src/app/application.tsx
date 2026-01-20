@@ -1,54 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 import { OSM } from "ol/source.js";
 import TileLayer from "ol/layer/Tile.js";
-import { View, Map, Feature, MapBrowserEvent } from "ol";
+import { Feature, Map, MapBrowserEvent, View } from "ol";
 import { useGeographic } from "ol/proj.js";
+import {
+  fylkeLayer,
+  fylkeSource,
+  kommuneLayer,
+  kommuneSource,
+} from "./layers.js";
 
 // CSS
 import "ol/ol.css";
 import "./application.css";
-import VectorSource from "ol/source/Vector.js";
-import VectorLayer from "ol/layer/Vector.js";
-import GeoJSON from "ol/format/GeoJSON.js";
 import Style from "ol/style/Style.js";
-import Stroke from "ol/style/Stroke.js";
-import Fill from "ol/style/Fill.js";
 import type { FeatureLike } from "ol/Feature.js";
 import { Text } from "ol/style.js";
+import { getCenter } from "ol/extent.js";
 
 useGeographic();
-
-// geojson source and layer
-// for fylker i Norge
-const fylkeSource = new VectorSource({
-  url: "/kws-2100-exercise03/geojson/fylker.geojson",
-  format: new GeoJSON(),
-});
-const fylkeLayer = new VectorLayer({
-  source: fylkeSource,
-  style: new Style({
-    stroke: new Stroke({
-      color: "blue",
-      width: 2,
-    }),
-    fill: new Fill({ color: "rgba(85, 50, 30, 0.2)" }),
-  }), // end style
-});
-
-// for kommuner i Norge
-const kommuneSource = new VectorSource({
-  url: "/kws-2100-exercise03/geojson/kommuner.geojson",
-  format: new GeoJSON(),
-});
-const kommuneLayer = new VectorLayer({
-  source: kommuneSource,
-  style: new Style({
-    stroke: new Stroke({
-      color: "blue",
-      width: 1,
-    }),
-  }), // end style
-});
 
 const layers = [new TileLayer({ source: new OSM() }), kommuneLayer, fylkeLayer];
 const view = new View({ center: [11, 59], zoom: 8 });
@@ -86,7 +56,6 @@ export function Application() {
   const [selectedKommune, setSelectedKommune] = useState<Feature>();
   function handleMapClick(e: MapBrowserEvent) {
     const kommune = kommuneSource.getFeaturesAtCoordinate(e.coordinate);
-    console.log(kommune);
     setSelectedKommune(kommune.length > 0 ? kommune[0] : undefined);
   }
   // useEffect som legger til click(for klikk på kommune) og pointer(for hover fylke) event handler på kartet
@@ -101,10 +70,28 @@ export function Application() {
     };
   }, []);
 
+  // Alle kommuner
+  const [allKommuner, setAllKommuner] = useState<Feature[]>();
+  // useEffect som setter alle kommuner
+  useEffect(() => {
+    kommuneSource.on("change", () => {
+      setAllKommuner(kommuneSource.getFeatures());
+    });
+  }, []);
+
   // setter ref for map div
   useEffect(() => {
     map.setTarget(mapRef.current!);
   }, []);
+
+  function handleClickKommune(kommune: Feature) {
+    setSelectedKommune(kommune);
+    const geometry = kommune.getGeometry();
+    view.animate({
+      center: getCenter(geometry!.getExtent()),
+      zoom: 10,
+    });
+  }
 
   return (
     <>
@@ -116,6 +103,28 @@ export function Application() {
       <main>
         {/* OSM Map (tile map / puslespill kart) */}
         <div ref={mapRef} id="map"></div>
+        {/* Sidebar */}
+        <aside>
+          <h2>Kommuner</h2>
+          <ul>
+            {allKommuner
+              ?.sort((a, b) =>
+                a
+                  .getProperties()
+                  [
+                    "kommunenavn"
+                  ].localeCompare(b.getProperties()["kommunenavn"]),
+              )
+              .map((kommune) => (
+                <li
+                  key={kommune.getProperties()["kommunenummer"]}
+                  onClick={() => handleClickKommune(kommune)}
+                >
+                  {kommune.getProperties()["kommunenavn"]}
+                </li>
+              ))}
+          </ul>
+        </aside>
       </main>
     </>
   );

@@ -11,6 +11,24 @@
 
 main {
   display: grid;
-  grid-template-rows: 1fr;
+  grid-template-columns: 1fr auto;
   min-height: 0;
+
+  aside {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+
+    ul {
+      overflow-y: auto;
+      background-color: rgba(0, 0, 0, 0.9);
+      padding: 0.5rem;
+
+      li {
+        color: #45f203;
+        list-style: none;
+        cursor: pointer;
+      }
+    }
+  }
 }
