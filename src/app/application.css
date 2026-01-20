@@ -1,3 +1,16 @@
 * {
   margin: unset;
+  padding: unset;
+}
+
+#root {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+main {
+  display: grid;
+  grid-template-rows: 1fr;
+  min-height: 0;
 }
