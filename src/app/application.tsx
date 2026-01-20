@@ -7,13 +7,29 @@ import { useGeographic } from "ol/proj.js";
 // CSS
 import "ol/ol.css";
 import "./application.css";
+import VectorSource from "ol/source/Vector.js";
+import VectorLayer from "ol/layer/Vector.js";
+import { GeoJSON } from "ol/format.js";
 
 useGeographic();
 
-const map = new Map({
-  layers: [new TileLayer({ source: new OSM() })],
-  view: new View({ center: [11, 59], zoom: 8 }),
+// geojson source and layer
+// for fylker i Norge
+const fylkeSource = new VectorSource({
+  url: "/kws-2100-exercise03/geojson/fylker.geojson",
+  format: new GeoJSON(),
 });
+const fylkeLayer = new VectorLayer({ source: fylkeSource });
+// for kommuner i Norge
+const kommuneSource = new VectorSource({
+  url: "/kws-2100-exercise03/geojson/kommuner.geojson",
+  format: new GeoJSON(),
+});
+const kommuneLayer = new VectorLayer({ source: kommuneSource });
+
+const layers = [new TileLayer({ source: new OSM() }), fylkeLayer, kommuneLayer];
+const view = new View({ center: [11, 59], zoom: 8 });
+const map = new Map({ layers, view });
 
 export function Application() {
   const mapRef = useRef<HTMLDivElement | null>(null);
