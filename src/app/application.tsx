@@ -1,14 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { OSM } from "ol/source.js";
 import TileLayer from "ol/layer/Tile.js";
 import { Feature, Map, MapBrowserEvent, View } from "ol";
 import { useGeographic } from "ol/proj.js";
-import {
-  fylkeLayer,
-  fylkeSource,
-  kommuneLayer,
-  kommuneSource,
-} from "./layers.js";
+import { fylkeSource, kommuneLayer, kommuneSource } from "./layers.js";
+import { KommuneSideBar } from "../components/KommuneSideBar.js";
 
 // CSS
 import "ol/ol.css";
@@ -16,20 +12,28 @@ import "./application.css";
 import Style from "ol/style/Style.js";
 import type { FeatureLike } from "ol/Feature.js";
 import { Text } from "ol/style.js";
-import { getCenter } from "ol/extent.js";
+import { Layer } from "ol/layer.js";
+import { FylkesLayerCheckbox } from "../components/fylkesLayerCheckbox.js";
 
 useGeographic();
 
-const layers = [new TileLayer({ source: new OSM() }), kommuneLayer, fylkeLayer];
 const view = new View({ center: [11, 59], zoom: 8 });
-const map = new Map({ layers, view });
+const map = new Map({ view });
 
 export function Application() {
   const mapRef = useRef<HTMLDivElement | null>(null);
 
+  const [fylkesLayers, setFylkesLayers] = useState<Layer[]>([]);
+  const layers = useMemo(
+    () => [new TileLayer({ source: new OSM() }), ...fylkesLayers, kommuneLayer],
+    [fylkesLayers],
+  );
+  useEffect(() => {
+    map.setLayers(layers);
+  }, [layers]);
+
   // hover effect over fylke
   const [activeFylke, setActiveFylke] = useState<Feature>();
-
   // style for activeFylke
   function activeFylkeStyle(fylke: FeatureLike) {
     const fylkeName = fylke.getProperties()["fylkesnavn"];
@@ -71,7 +75,7 @@ export function Application() {
   }, []);
 
   // Alle kommuner
-  const [allKommuner, setAllKommuner] = useState<Feature[]>();
+  const [allKommuner, setAllKommuner] = useState<Feature[]>([]);
   // useEffect som setter alle kommuner
   useEffect(() => {
     kommuneSource.on("change", () => {
@@ -84,27 +88,26 @@ export function Application() {
     map.setTarget(mapRef.current!);
   }, []);
 
-  function handleClickKommune(kommune: Feature) {
-    setSelectedKommune(kommune);
-    const geometry = kommune.getGeometry();
-    view.animate({
-      center: getCenter(geometry!.getExtent()),
-      zoom: 10,
-    });
-  }
-
   return (
     <>
-      <h1>
-        {selectedKommune
-          ? selectedKommune.getProperties()["kommunenavn"]
-          : "Regioner i Norge"}
-      </h1>
+      <header>
+        <h1>
+          {selectedKommune
+            ? selectedKommune.getProperties()["kommunenavn"]
+            : "Regioner i Norge"}
+        </h1>
+        <FylkesLayerCheckbox setFylkesLayers={setFylkesLayers} />
+      </header>
       <main>
         {/* OSM Map (tile map / puslespill kart) */}
         <div ref={mapRef} id="map"></div>
         {/* Sidebar */}
-        <aside>
+        <KommuneSideBar
+          allKommuner={allKommuner}
+          view={view}
+          setSelectedKommune={setSelectedKommune}
+        />
+        {/*        <aside>
           <h2>Kommuner</h2>
           <ul>
             {allKommuner
@@ -124,7 +127,7 @@ export function Application() {
                 </li>
               ))}
           </ul>
-        </aside>
+        </aside>*/}
       </main>
     </>
   );
