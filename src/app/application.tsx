@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { OSM } from "ol/source.js";
 import TileLayer from "ol/layer/Tile.js";
-import { Feature, Map, MapBrowserEvent, View } from "ol";
+import { Feature, Map, View } from "ol";
 import { useGeographic } from "ol/proj.js";
-import { kommuneLayer, kommuneSource } from "./layers.js";
 import { KommuneSideBar } from "../components/KommuneSideBar.js";
 
 // CSS
@@ -11,6 +10,7 @@ import "ol/ol.css";
 import "./application.css";
 import { Layer } from "ol/layer.js";
 import { FylkesLayerCheckbox } from "../components/fylkesLayerCheckbox.js";
+import { KommuneLayerCheckbox } from "../components/kommuneLayerCheckbox.js";
 
 useGeographic();
 
@@ -21,9 +21,14 @@ export function Application() {
   const mapRef = useRef<HTMLDivElement | null>(null);
 
   const [fylkesLayers, setFylkesLayers] = useState<Layer[]>([]);
+  const [kommuneLayers, setKommuneLayers] = useState<Layer[]>([]);
   const layers = useMemo(
-    () => [new TileLayer({ source: new OSM() }), ...fylkesLayers, kommuneLayer],
-    [fylkesLayers],
+    () => [
+      new TileLayer({ source: new OSM() }),
+      ...fylkesLayers,
+      ...kommuneLayers,
+    ],
+    [fylkesLayers, kommuneLayers],
   );
   useEffect(() => {
     map.setLayers(layers);
@@ -31,33 +36,13 @@ export function Application() {
 
   // Click effect for kommuner (når man klikker på en kommune skal navnet vises i h1 teksten)
   const [selectedKommune, setSelectedKommune] = useState<Feature>();
-  function handleMapClick(e: MapBrowserEvent) {
-    const kommune = kommuneSource.getFeaturesAtCoordinate(e.coordinate);
-    setSelectedKommune(kommune.length > 0 ? kommune[0] : undefined);
-  }
-  // useEffect som legger til click(for klikk på kommune) og pointer(for hover fylke) event handler på kartet
-  useEffect(() => {
-    map.on("click", handleMapClick);
-
-    // cleanup function for å fjerne event listeners når komponenten unmountes slik at man unngår memory leaks
-    return () => {
-      map.un("click", handleMapClick);
-    };
-  }, []);
-
-  // Alle kommuner
-  const [allKommuner, setAllKommuner] = useState<Feature[]>([]);
-  // useEffect som setter alle kommuner
-  useEffect(() => {
-    kommuneSource.on("change", () => {
-      setAllKommuner(kommuneSource.getFeatures());
-    });
-  }, []);
-
   // setter ref for map div
   useEffect(() => {
     map.setTarget(mapRef.current!);
   }, []);
+
+  // Alle kommuner
+  const [allKommuner, setAllKommuner] = useState<Feature[]>([]);
 
   return (
     <>
@@ -68,37 +53,24 @@ export function Application() {
             : "Regioner i Norge"}
         </h1>
         <FylkesLayerCheckbox setFylkesLayers={setFylkesLayers} map={map} />
+        <KommuneLayerCheckbox
+          setKommuneLayers={setKommuneLayers}
+          map={map}
+          setAllKommuner={setAllKommuner}
+          setSelectedKommune={setSelectedKommune}
+        />
       </header>
       <main>
         {/* OSM Map (tile map / puslespill kart) */}
         <div ref={mapRef} id="map"></div>
         {/* Sidebar */}
-        <KommuneSideBar
-          allKommuner={allKommuner}
-          view={view}
-          setSelectedKommune={setSelectedKommune}
-        />
-        {/*        <aside>
-          <h2>Kommuner</h2>
-          <ul>
-            {allKommuner
-              ?.sort((a, b) =>
-                a
-                  .getProperties()
-                  [
-                    "kommunenavn"
-                  ].localeCompare(b.getProperties()["kommunenavn"]),
-              )
-              .map((kommune) => (
-                <li
-                  key={kommune.getProperties()["kommunenummer"]}
-                  onClick={() => handleClickKommune(kommune)}
-                >
-                  {kommune.getProperties()["kommunenavn"]}
-                </li>
-              ))}
-          </ul>
-        </aside>*/}
+        {allKommuner && kommuneLayers.length > 0 && (
+          <KommuneSideBar
+            allKommuner={allKommuner}
+            view={view}
+            setSelectedKommune={setSelectedKommune}
+          />
+        )}
       </main>
     </>
   );
