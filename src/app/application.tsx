@@ -3,15 +3,12 @@ import { OSM } from "ol/source.js";
 import TileLayer from "ol/layer/Tile.js";
 import { Feature, Map, MapBrowserEvent, View } from "ol";
 import { useGeographic } from "ol/proj.js";
-import { fylkeSource, kommuneLayer, kommuneSource } from "./layers.js";
+import { kommuneLayer, kommuneSource } from "./layers.js";
 import { KommuneSideBar } from "../components/KommuneSideBar.js";
 
 // CSS
 import "ol/ol.css";
 import "./application.css";
-import Style from "ol/style/Style.js";
-import type { FeatureLike } from "ol/Feature.js";
-import { Text } from "ol/style.js";
 import { Layer } from "ol/layer.js";
 import { FylkesLayerCheckbox } from "../components/fylkesLayerCheckbox.js";
 
@@ -32,30 +29,6 @@ export function Application() {
     map.setLayers(layers);
   }, [layers]);
 
-  // hover effect over fylke
-  const [activeFylke, setActiveFylke] = useState<Feature>();
-  // style for activeFylke
-  function activeFylkeStyle(fylke: FeatureLike) {
-    const fylkeName = fylke.getProperties()["fylkesnavn"];
-    return new Style({
-      text: new Text({
-        text: fylkeName,
-        scale: 2,
-      }),
-    });
-  }
-  function handlePointerMove(e: MapBrowserEvent) {
-    const fylke = fylkeSource.getFeaturesAtCoordinate(e.coordinate);
-    setActiveFylke(fylke.length > 0 ? fylke[0] : undefined);
-  }
-  // useEffect som legger til hover effect på fylker
-  useEffect(() => {
-    activeFylke?.setStyle(activeFylkeStyle);
-    return () => {
-      activeFylke?.setStyle(undefined);
-    };
-  }, [activeFylke]);
-
   // Click effect for kommuner (når man klikker på en kommune skal navnet vises i h1 teksten)
   const [selectedKommune, setSelectedKommune] = useState<Feature>();
   function handleMapClick(e: MapBrowserEvent) {
@@ -64,12 +37,10 @@ export function Application() {
   }
   // useEffect som legger til click(for klikk på kommune) og pointer(for hover fylke) event handler på kartet
   useEffect(() => {
-    map.on("pointermove", handlePointerMove);
     map.on("click", handleMapClick);
 
     // cleanup function for å fjerne event listeners når komponenten unmountes slik at man unngår memory leaks
     return () => {
-      map.un("pointermove", handlePointerMove);
       map.un("click", handleMapClick);
     };
   }, []);
@@ -96,7 +67,7 @@ export function Application() {
             ? selectedKommune.getProperties()["kommunenavn"]
             : "Regioner i Norge"}
         </h1>
-        <FylkesLayerCheckbox setFylkesLayers={setFylkesLayers} />
+        <FylkesLayerCheckbox setFylkesLayers={setFylkesLayers} map={map} />
       </header>
       <main>
         {/* OSM Map (tile map / puslespill kart) */}
