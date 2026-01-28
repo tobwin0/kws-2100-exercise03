@@ -23,14 +23,15 @@ export function KommuneLayerCheckbox({
   useEffect(() => {
     kommuneSource.on("change", () => {
       setAllKommuner(kommuneSource.getFeatures());
-      // useEffect som legger til click(for klikk på kommune) event handler på kartet
-      map.on("click", handleMapClick);
-      // cleanup function for å fjerne event listeners når komponenten unmountes slik at man unngår memory leaks
-      return () => {
-        map.un("click", handleMapClick);
-      };
     });
-  }, []);
+    // useEffect som legger til click(for klikk på kommune) event handler på kartet
+    if (showKommuneLayer) map.on("click", handleMapClick);
+    if (!showKommuneLayer) setSelectedKommune(undefined);
+    // cleanup function for å fjerne event listeners når komponenten unmountes slik at man unngår memory leaks
+    return () => {
+      map.un("click", handleMapClick);
+    };
+  }, [showKommuneLayer]);
 
   function handleMapClick(e: MapBrowserEvent) {
     const kommune = kommuneSource.getFeaturesAtCoordinate(e.coordinate);

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { OSM } from "ol/source.js";
+import { StadiaMaps } from "ol/source.js";
 import TileLayer from "ol/layer/Tile.js";
 import { Feature, Map, View } from "ol";
 import { useGeographic } from "ol/proj.js";
@@ -11,6 +11,7 @@ import "./application.css";
 import { Layer } from "ol/layer.js";
 import { FylkesLayerCheckbox } from "../components/fylkesLayerCheckbox.js";
 import { KommuneLayerCheckbox } from "../components/kommuneLayerCheckbox.js";
+import { BackgroundLayerSelect } from "../layers/backgroundLayerSelect.js";
 
 useGeographic();
 
@@ -22,13 +23,12 @@ export function Application() {
 
   const [fylkesLayers, setFylkesLayers] = useState<Layer[]>([]);
   const [kommuneLayers, setKommuneLayers] = useState<Layer[]>([]);
+  const [backgroundLayer, setBackgroundLayer] = useState<Layer>(
+    new TileLayer({ source: new StadiaMaps({ layer: "alidade_smooth" }) }),
+  );
   const layers = useMemo(
-    () => [
-      new TileLayer({ source: new OSM() }),
-      ...fylkesLayers,
-      ...kommuneLayers,
-    ],
-    [fylkesLayers, kommuneLayers],
+    () => [backgroundLayer, ...fylkesLayers, ...kommuneLayers],
+    [fylkesLayers, kommuneLayers, backgroundLayer],
   );
   useEffect(() => {
     map.setLayers(layers);
@@ -52,6 +52,7 @@ export function Application() {
             ? selectedKommune.getProperties()["kommunenavn"]
             : "Regioner i Norge"}
         </h1>
+        <BackgroundLayerSelect setBackgroundLayer={setBackgroundLayer} />
         <FylkesLayerCheckbox setFylkesLayers={setFylkesLayers} map={map} />
         <KommuneLayerCheckbox
           setKommuneLayers={setKommuneLayers}
